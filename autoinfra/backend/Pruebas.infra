@@ -1,0 +1,15 @@
+// Prueba básica del lexer
+server backend {
+  cpu = 4;
+  memory = 8;
+  disk = 100;
+  os = "ubuntu";
+}
+
+main {
+  start(backend);
+  int x = 10;
+  float y = 2.5;
+  string msg = "Hola\nMundo";
+  bool ok = true;
+}
