@@ -8,7 +8,7 @@ const TokenType = Object.freeze({
   IDENTIFIER: 'IDENTIFIER',
 
   //Palabras reservadas: tipos
-  INT:      'INT',
+  INT:   'INT',
   FLOAT:   'FLOAT',
   STRING: 'STRING',
   BOOL:   'BOOL',
