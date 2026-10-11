@@ -21,7 +21,7 @@ class InstruccionFor extends Instruccion {
             if (resultado.senal=== ExecSignal.BREAK) {
                 break;
             }
-            if (resultado.senal === ExecSignal.RETURN) {
+            if (resultado.senal=== ExecSignal.RETURN) {
                 return resultado;
             }
             if(this.actualizacion)

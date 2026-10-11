@@ -1,3 +1,6 @@
+const Expresion = require('../Expresion');
+const TokenType= require('../../lexer/TokenType');
+
 class ExpresionBinaria extends Expresion{
     constructor(izquierda, operador, derecha, linea, columna) {
         super(linea, columna);
@@ -7,9 +10,7 @@ class ExpresionBinaria extends Expresion{
     }
  
     evaluar(entorno){
-        const TipoToken= require('../lexer/TokenType');
-
-        if (this.operador=== TipoToken.AND){
+        if (this.operador=== TokenType.AND){
             const izq =this.izquierda.evaluar(entorno);
             if (izq === false){
                 return false;
@@ -17,7 +18,7 @@ class ExpresionBinaria extends Expresion{
             return this.derecha.evaluar(entorno);
         }
 
-        if(this.operador === TipoToken.OR){
+        if(this.operador === TokenType.OR){
             const izq= this.izquierda.evaluar(entorno);
             if (izq === true){
                 return true;
@@ -28,43 +29,44 @@ class ExpresionBinaria extends Expresion{
         const izq= this.izquierda.evaluar(entorno);
         const der = this.derecha.evaluar(entorno);
         switch(this.operador){
-        case TipoToken.PLUS:
+        case TokenType.PLUS:
             return izq + der;
             
-        case TipoToken.MINUS:
+        case TokenType.MINUS:
             return izq - der;
             
-        case TipoToken.STAR:
+        case TokenType.STAR:
             return izq * der;
 
-        case TipoToken.SLASH:
+        case TokenType.SLASH:
             if (der=== 0){
             throw new Error(`División por cero en L${this.linea}:C${this.columna}`);
             }
             return izq / der;
             
-        case TipoToken.PERCENT:
+        case TokenType.PERCENT:
             return izq%der;
             
-        case TipoToken.EQUAL_EQUAL:
+        case TokenType.EQUAL_EQUAL:
             return izq === der;
 
-        case TipoToken.NOT_EQUAL:
+        case TokenType.NOT_EQUAL:
             return izq!== der;
 
-        case TipoToken.LESS:
+        case TokenType.LESS:
             return izq < der;
             
-        case TipoToken.LESS_EQUAL:
+        case TokenType.LESS_EQUAL:
             return izq<=der;
 
-        case TipoToken.GREATER:
+        case TokenType.GREATER:
             return izq> der;
 
-        case TipoToken.GREATER_EQUAL:
+        case TokenType.GREATER_EQUAL:
             return izq >= der;
         default:
             throw new Error(`Operador binario desconocido: ${this.operador}`);
         }
     }
 }
+module.exports= ExpresionBinaria;
