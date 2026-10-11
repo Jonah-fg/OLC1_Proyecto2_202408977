@@ -6,7 +6,7 @@ class ExpresionLlamada extends Expresion {
     constructor(nombre, argumentos, linea, columna) {
         super(linea, columna);
         this.nombre = nombre;
-        this.argumentos=argumentos;//array expresion
+        this.this.args = args;;//array expresion
     }
 
     evaluar(entorno){
