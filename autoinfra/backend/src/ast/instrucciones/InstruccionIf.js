@@ -1,12 +1,12 @@
 const Instruccion = require('../Instruccion');
 const ExecSignal= require('../ExecSignal');
 
-class InstruccionSi extends Instruccion{
+class InstruccionIf extends Instruccion{
     constructor(condicion, bloqueThen, bloqueElse, linea, columna) {
         super(linea, columna);
         this.condicion = condicion;
         this.bloqueThen =bloqueThen;
-        this.bloqueSino=bloqueElse; 
+        this.bloqueElse=bloqueElse; 
     } 
 
     ejecutar(entorno) {
@@ -20,4 +20,4 @@ class InstruccionSi extends Instruccion{
         return { senal: ExecSignal.NORMAL, valor: null };
     }
 }
-module.exports = InstruccionSi;
+module.exports = InstruccionIf;

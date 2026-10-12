@@ -3,14 +3,14 @@
 const Expresion = require('../Expresion');
 
 class ExpresionLlamada extends Expresion {
-    constructor(nombre, argumentos, linea, columna) {
+    constructor(nombre, args, linea, columna) {
         super(linea, columna);
         this.nombre = nombre;
-        this.this.args = args;;//array expresion
+        this.args=args;//array expresion
     }
 
     evaluar(entorno){
-        const valoresArgs =this.argumentos.map(a => a.evaluar(entorno));
+        const valoresArgs =this.args.map(a => a.evaluar(entorno));
         return entorno.llamarFuncion(this.nombre, valoresArgs, this.linea, this.columna);
     }
 }
