@@ -3,7 +3,7 @@
 const DeclaracionVariable = require('./DeclaracionVariable');
 const Asignacion =require('./Asignacion');
 const BloqueInstrucciones = require('./BloqueInstrucciones');
-const InstruccionIf= require('./InstruccionIF');
+const InstruccionIf= require('./InstruccionIf');
 const InstruccionWhile = require('./InstruccionWhile');
 const InstruccionFor = require('./InstruccionFor');
 const InstruccionReturn= require('./InstruccionReturn');

@@ -1,15 +1,38 @@
-// Prueba básica del lexer
 server backend {
-  cpu = 4;
-  memory = 8;
-  disk = 100;
-  os = "ubuntu";
+    cpu = 4;
+    memory = 8;
+    disk = 100;
+    os = "ubuntu";
 }
 
-main {
-  start(backend);
-  int x = 10;
-  float y = 2.5;
-  string msg = "Hola\nMundo";
-  bool ok = true;
+database postgres {
+    engine = "postgresql";
+    version = "16";
+    port = 5432;
+}
+
+service api {
+    port = 8080;
+    replicas = 2;
+    dependsOn = [postgres];
+}
+
+string[] packages = ["docker", "git"];
+
+function enoughMemory(server s, int minimum) bool {
+    return s.memory >= minimum;
+}
+
+task production {
+    start(postgres);
+    start(backend);
+    install(backend, "docker");
+    if (enoughMemory(backend, 8)) {
+        deploy(backend, api);
+        scale(api, 3);
+    }
+}
+
+main{
+    run production;
 }

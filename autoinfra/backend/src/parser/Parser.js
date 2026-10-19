@@ -2,17 +2,72 @@
 //Se implementará por subfases: expresiones, instrucciones y declaraciones.
 const TokenType = require('../lexer/TokenType');
 const { ErrorSintactico } = require('../Utils/Errores');
+const Programa =require('../ast/Programa');
 const {ExpresionLiteral, ExpresionIdentificador, ExpresionBinaria, ExpresionUnaria, ExpresionLlamada, ExpresionAccesoPropiedad, ExpresionIndice, ExpresionArreglo,
 }=require('../ast/expresiones');
-const {DeclaracionVariable, Asignacion, BloqueInstrucciones, InstruccionIf, InstruccionWhile, InstruccionFor, InstruccionReturn, InstruccionBreak, InstruccionContinue, InstruccionLlamada, InstruccionRun,
+const {DeclaracionVariable, Asignacion, BloqueInstrucciones,InstruccionIf, InstruccionWhile, InstruccionFor, InstruccionReturn, InstruccionBreak, InstruccionContinue, InstruccionLlamada, InstruccionRun, DeclaracionFuncion, DeclaracionTarea, DeclaracionRecurso,
 }=require('../ast/instrucciones');
 
 
 class Parser{
     constructor(tokens){this.tokens= tokens; this.posicion=0; this.errores = [];}
     parsear(){
-        return null;
+        const declaraciones= [];
+        let bloqueMain =null;
+        let lineaMain = 1;
+        let columnaMain = 1;
+
+        while(!this.finAlcanzado()){
+            try{
+                //main{...}
+                if(this.verificar(TokenType.MAIN)) {
+                    if (bloqueMain !== null){
+                        const t = this.tokenActual();
+                        throw new ErrorSintactico('Solo se permite un blque main por archivo', t.linea, t.columna);
+                    }
+                    const tokenMain= this.avanzar();
+                    lineaMain = tokenMain.linea;
+                    columnaMain= tokenMain.columna;
+                    bloqueMain=this.bloqueInstrucciones();
+                    continue;
+                }
+                //server/service / database
+                if(this.verificar(TokenType.SERVER) || this.verificar(TokenType.SERVICE) || this.verificar(TokenType.DATABASE)) {
+                    declaraciones.push(this.declaracionRecurso());
+                    continue;
+                }
+
+                //function
+                if (this.verificar(TokenType.FUNCTION)) {
+                    declaraciones.push(this.declaracionFuncion());
+                    continue;
+                }
+
+                if (this.verificar(TokenType.TASK)) {
+                    declaraciones.push(this.declaracionTarea());
+                    continue;
+                }
+
+                //Variable global
+                if (this.esTipo()){
+                    declaraciones.push(this.declaracionVariable());
+                    continue;
+                }
+
+                const token= this.tokenActual();
+                throw new ErrorSintactico(`Declaración no válida: se encontró '${token.lexema}'`, token.linea, token.columna);
+            } 
+            catch (e){
+                this.reportarError(e.descripcion || e.message, e.linea || 1, e.columna || 1);
+                this.sincronizar();
+            }
+        }
+        if (bloqueMain=== null) {
+            this.reportarError('El archivo debe contener un bloque main', this.linea, this.columna);
+        }
+        return new Programa(declaraciones, bloqueMain, lineaMain, columnaMain);
     }
+
 
     // Utilidades de navegación
     tokenActual(){
@@ -21,7 +76,7 @@ class Parser{
 
     //Devuelve el token en la posición actual + desplazamiento
     mirar(desplazamiento =0){
-        const indice = this.posicion + desplazamiento;
+        const indice = this.posicion +desplazamiento;
         if (indice >=this.tokens.length) {
             return this.tokens[this.tokens.length -1]; 
         }
@@ -64,7 +119,7 @@ class Parser{
         return this.tokenActual().tipo === TokenType.EOF;
     }
 
-    //Manejo de errores
+    //manejo de errores
     reportarError(mensaje, linea, columna){
         this.errores.push(new ErrorSintactico(mensaje, linea, columna));
     }
@@ -484,7 +539,7 @@ class Parser{
         this.consumir(TokenType.RPAREN, "Se esperaba ')' al fial del for");
         const body= this.bloqueInstrucciones();
 
-        return new InstruccionFor( init, condicion, update, body, tokenFor.linea, tokenFor.columna
+        return new InstruccionFor(init, condicion, update, body, tokenFor.linea, tokenFor.columna
         );
     }
 
@@ -518,6 +573,79 @@ class Parser{
         const nombre=this.consumir(TokenType.IDENTIFIER, "Se esperaba el nombre de la tarea");
         this.consumir(TokenType.SEMICOLON, "Se esperaba ';' después de 'run'");
         return new InstruccionRun(nombre.lexema, tokenRun.linea, tokenRun.columna);
+    }
+
+    //DECLARACIONES GLOBALES
+    declaracionRecurso(){
+        const tokenTipo =this.avanzar(); //server | service | database
+        const tipoRecurso=tokenTipo.lexema;
+
+        const nombre= this.consumir(TokenType.IDENTIFIER, `Se esperaba el nombre del ${tipoRecurso}`);
+        this.consumir(TokenType.LBRACE, `Se esperaba '{' después del nombre del ${tipoRecurso}`);
+        const propiedades= [];
+
+        while(!this.verificar(TokenType.RBRACE) && !this.finAlcanzado()){
+            const nombreProp = this.consumir(TokenType.IDENTIFIER, 'Se esperaba el nombre de una propiedad');
+            this.consumir(TokenType.ASSIGN, "Se esperaba '=' después del nombre de la propiedad");
+            const valor= this.expresion();
+            this.consumir(TokenType.SEMICOLON, "Se esperaba ';' después de la propiedad");
+
+            propiedades.push({nombre: nombreProp.lexema, valor: valor,});
+        }
+
+        this.consumir(TokenType.RBRACE, `Se esperaba '}' al final del ${tipoRecurso}`);
+
+        return new DeclaracionRecurso(tipoRecurso, nombre.lexema, propiedades, tokenTipo.linea, tokenTipo.columna
+        );
+    }
+
+    //function canDeploy(server s, int minMemory) bool
+    declaracionFuncion() {
+        const tokenFuncion =this.consumir(TokenType.FUNCTION, "Se esperaba 'function'");
+        const nombre = this.consumir(TokenType.IDENTIFIER, 'Se esperaba el nombre de la función');
+        this.consumir(TokenType.LPAREN,"Se esperaba '(' después del nombre de la función");
+
+        const parametros= this.listaParametros();
+
+        this.consumir(TokenType.RPAREN, "Se espraba ')' al final de los parámetros");
+
+        //tipo de retorno opcional
+        let tipoRetorno=null;
+        if(this.esTipo()){
+            tipoRetorno =this.parsearTipo().tipo;
+        }
+
+        const cuerpo= this.bloqueInstrucciones();
+        return new DeclaracionFuncion( nombre.lexema, parametros, tipoRetorno, cuerpo, tokenFuncion.linea, tokenFuncion.columna);
+    }
+
+    listaParametros(){
+        const parametros=[];
+
+        if (this.verificar(TokenType.RPAREN)){
+            return parametros;
+        }
+
+        parametros.push(this.parametro());
+        while(this.coincidir(TokenType.COMMA)){
+            parametros.push(this.parametro());
+        }
+        return parametros;
+    }
+
+    parametro(){
+        const infoTipo = this.parsearTipo();
+        const nombre=this.consumir(TokenType.IDENTIFIER, 'Se esperaba el nombre del parámetro');
+        return {tipo: infoTipo.tipo, nombre: nombre.lexema,};
+    }
+
+    //task production{ ...}
+    declaracionTarea(){
+        const tokenTarea=this.consumir(TokenType.TASK, "Se esperaba 'task'");
+
+        const nombre =this.consumir(TokenType.IDENTIFIER, 'Se esperaba el nombre de la tarea');
+        const body=this.bloqueInstrucciones();
+        return new DeclaracionTarea(nombre.lexema, body, tokenTarea.linea, tokenTarea.columna);
     }
 }
 module.exports= Parser;

@@ -2,7 +2,7 @@ const Instruccion = require('../Instruccion');
 const ExecSignal = require('../ExecSignal');
 
 class DeclaracionTarea extends Instruccion{
-    constructor(nombre, cuerpo, linea, columna){
+    constructor(nombre, body, linea, columna){
         super(linea, columna);
         this.nombre = nombre;
         this.body=body;
