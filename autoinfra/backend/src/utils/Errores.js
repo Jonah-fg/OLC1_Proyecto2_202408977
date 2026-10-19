@@ -17,4 +17,24 @@ class ErrorSintactico{
         this.columna=columna;
     }
 }
-module.exports= {ErrorLexico, ErrorSintactico};
+
+class ErrorEjecucion{
+    constructor(descripcion, linea, columna) {
+        this.tipo='Ejecución';
+        this.codigo = 'EXE-001';
+        this.descripcion = descripcion;
+        this.linea= linea;
+        this.columna=columna;
+    }
+}
+
+class ErrorInfraestructura{
+    constructor(codigo, descripcion, linea, columna) {
+        this.tipo ='Infraestructura';
+        this.codigo = codigo;  
+        this.descripcion = descripcion;
+        this.linea = linea;
+        this.columna=columna;
+    }
+}
+module.exports= {ErrorLexico, ErrorSintactico, ErrorEjecucion, ErrorInfraestructura};
