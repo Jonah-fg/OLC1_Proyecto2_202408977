@@ -17,8 +17,6 @@ service api {
     dependsOn = [postgres];
 }
 
-string[] packages = ["docker", "git"];
-
 function enoughMemory(server s, int minimum) bool {
     return s.memory >= minimum;
 }
@@ -33,6 +31,6 @@ task production {
     }
 }
 
-main{
+main {
     run production;
 }

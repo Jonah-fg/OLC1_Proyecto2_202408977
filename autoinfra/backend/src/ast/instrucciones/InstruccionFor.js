@@ -13,7 +13,8 @@ class InstruccionFor extends Instruccion {
 
     ejecutar(entorno){
         const entornoFor= entorno.crearHijo();
-        if (this.inicializacion) this.inicializacion.ejecutar(entornoFor);
+        if (this.inicializacion)
+            this.inicializacion.ejecutar(entornoFor);
 
         let iteraciones=0;
         while (this.condicion ? this.condicion.evaluar(entornoFor)=== true : true){
@@ -24,8 +25,8 @@ class InstruccionFor extends Instruccion {
             if (resultado.senal=== ExecSignal.RETURN) {
                 return resultado;
             }
-            if(this.actualizacion)
-                this.actualizacion.ejecutar(entornoFor);
+            if(this.update)
+                this.update.ejecutar(entornoFor);
 
             iteraciones++;
             if (iteraciones> 100000) {

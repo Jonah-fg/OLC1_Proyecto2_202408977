@@ -1,4 +1,3 @@
-
 //modela un servcio
 const Recurso =require('./Recurso');
 const {ErrorInfraestructura } = require('../Utils/Errores');
@@ -38,7 +37,16 @@ class Service extends Recurso{
                     if (!Array.isArray(valor)) {
                         throw new ErrorInfraestructura('INFRA-001', `Propiedad 'dependsOn' del service '${this.nombre}' debe ser un arreglo`, linea, columna );
                     }
-                    this.dependsOn = valor;
+                    //conversiojn objetos a nombres (acepta strings y recursos)
+                    this.dependsOn=valor.map((v) =>{
+                        if (typeof v === 'string') 
+                            return v;
+                        
+                        if (v && typeof v=== 'object' && v.nombre){
+                            return v.nombre;
+                        }
+                        return String(v);
+                    });
                     break;
 
                 case 'status':

@@ -1,7 +1,7 @@
-
 //Tabla de símbolos con ámbitos anidados
 //variables, funciones, tareas y recursos y toooooooodo eso :)
 const {ErrorEjecucion } =require('../Utils/Errores');
+const ExecSignal = require('../ast/ExecSignal');
 
 class Entorno{
     constructor(padre=null) {
@@ -18,6 +18,7 @@ class Entorno{
             this.limiteInstrucciones = 100000;
             this.limiteProfundidad = 1000;
             this.consola =[];  
+            this.errores = []; 
             this.bitacora = [];  
         }
     }
@@ -105,12 +106,87 @@ class Entorno{
     }
 
     //recursos
-    registrarRecurso(nombre, recurso){
+    registrarRecurso(tipoRecurso, nombre, propiedades, linea, columna) {
+        if (typeof nombre !=='string'){
+            const recurso = nombre;
+            this.global().recursos.set(tipoRecurso, recurso);
+            return recurso;
+        }
+        const{Server, Service, Database} = require('../infraestructura');
+
+        let recurso;
+        switch (tipoRecurso) {
+            case 'server':
+                recurso= new Server(nombre, propiedades, linea, columna);
+                break;
+            case 'service':
+                recurso= new Service(nombre, propiedades, linea, columna);
+                break;
+            case 'database':
+                recurso=new Database(nombre, propiedades, linea, columna);
+                break;
+            default:
+                throw new ErrorEjecucion(`Tipo de recurso desconocido: '${tipoRecurso}'`, linea, columna);
+        }
         this.global().recursos.set(nombre, recurso);
+        this.registrarBitacora(`[OK] Resource '${nombre}' registered`);
+        return recurso;
     }
 
     obtenerRecurso(nombre){
         return this.global().recursos.get(nombre) || null;
+    }
+
+    obtenerRecursosGlobales(){
+        return this.global().recursos;
+    }
+
+    //Llamadas a funciones y tareas
+    llamarFuncion(nombre, args, linea, columna){
+        //Funciones nativas primero
+        const { funcionesNativas } =require('../infraestructura');
+        if (funcionesNativas[nombre]){
+            return funcionesNativas[nombre](this, args, linea, columna);
+        }
+
+        //Funciones de usuario
+        const funcion=this.obtenerFuncion(nombre);
+        if (!funcion) {
+            throw new ErrorEjecucion(`Función '${nombre}' no definida`, linea, columna);
+        }
+
+        //Validar número de parámetros
+        if (args.length !==funcion.params.length){
+            throw new ErrorEjecucion(`Función '${nombre}' espera ${funcion.params.length} argumentos, recibió ${args.length}`, linea, columna);
+        }
+
+        //crecion entorno hijo con los parámetros
+        const entornoFuncion= this.crearHijo();
+        for (let i = 0; i <funcion.params.length; i++) {
+            entornoFuncion.declarar(funcion.params[i].nombre, args[i], funcion.params[i].tipo, linea, columna);
+        }
+
+        this.entrarLlamada(linea, columna);
+        try{
+            const resultado=funcion.body.ejecutar(entornoFuncion);
+            if(resultado.senal === ExecSignal.RETURN) {
+                return resultado.valor;
+            }
+            return null;
+        } 
+        finally{
+            this.salirLlamada();
+        }
+    }
+
+    ejecutarTarea(nombreTarea, linea, columna){
+        const tarea= this.obtenerTarea(nombreTarea);
+        if (!tarea){
+            throw new ErrorEjecucion(`Tarea '${nombreTarea}' no definida`, linea, columna);
+        }
+        //se descarta cualquier señal de retorno
+        tarea.body.ejecutar(this);
+        return{senal: ExecSignal.NORMAL, valor: null };
     }
 
     // Control de ejecución
@@ -155,6 +231,16 @@ class Entorno{
         this.global().bitacora.push(mensaje);
     }
 
+    registrarError(error){
+        const global= this.global();
+        if (error.tipo && error.descripcion){
+            global.errores.push(error);
+        } 
+        else{
+            global.errores.push({tipo: 'Ejecución', codigo: 'EXE-001', descripcion: error.message || String(error), linea: 0, columna: 0,});
+        }
+    }
+
     obtenerConsola() {
         return this.global().consola;
     }
@@ -165,6 +251,9 @@ class Entorno{
 
     obtenerRecursosGlobales() {
         return this.global().recursos;
+    }
+    obtenerErrores(){
+        return this.global().errores;
     }
 }
 module.exports= Entorno;

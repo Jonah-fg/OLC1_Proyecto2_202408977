@@ -12,10 +12,10 @@ class InstruccionIf extends Instruccion{
     ejecutar(entorno) {
         const cond=this.condicion.evaluar(entorno);
         if(cond=== true){
-            return this.bloqueEntonces.ejecutar(entorno);
+            return this.bloqueThen.ejecutar(entorno);
         } 
-        else if(this.bloqueSino){
-            return this.bloqueSino.ejecutar(entorno);
+        else if(this.bloqueElse){
+            return this.bloqueElse.ejecutar(entorno);
         }
         return { senal: ExecSignal.NORMAL, valor: null };
     }

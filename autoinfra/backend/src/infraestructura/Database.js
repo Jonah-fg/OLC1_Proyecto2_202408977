@@ -17,7 +17,7 @@ class Database extends Recurso{
 
             switch (clave){
                 case 'engine':
-                    if(typeof valor !== 'string' || !MOTORES_VALIDOS.includes(valor)) {
+                    if(typeof valor !=='string' || !MOTORES_VALIDOS.includes(valor)) {
                         throw new ErrorInfraestructura('INFRA-001', `Propiedad 'engine' de la database '${this.nombre}' debe ser uno de: postgresql, mysql, sqlite`, linea, columna);
                     }
                     this.engine =valor;
@@ -50,4 +50,4 @@ class Database extends Recurso{
         return{nombre: this.nombre, tipo: this.tipo, status: this.status, engine: this.engine, version: this.version, port: this.port,};
     }
 }
-module.exports= Database;
+module.exports =Database;

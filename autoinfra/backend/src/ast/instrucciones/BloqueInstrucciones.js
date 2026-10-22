@@ -1,6 +1,6 @@
 //{ instruccion1; instruccion2; ... }
-const Instruccion = require('../Instruccion');
-const ExecSignal = require('../ExecSignal');
+const Instruccion= require('../Instruccion');
+const ExecSignal =require('../ExecSignal');
 
 class BloqueInstrucciones extends Instruccion {
     constructor(instrucciones, linea, columna){
@@ -9,15 +9,21 @@ class BloqueInstrucciones extends Instruccion {
     }
 
     ejecutar(entorno){
-        const entornoLocal= entorno.crearHijo();
-        for (const instr of this.instrucciones){
-            const resultado=instr.ejecutar(entornoLocal);
-            if(resultado && resultado.senal !== ExecSignal.NORMAL) {
-                return resultado;
+        const entornoLocal = entorno.crearHijo();
+        for(const instruccion of this.instrucciones){
+            entorno.incrementarInstrucciones(instruccion.linea, instruccion.columna);
+            //Ejecucion con try/catch indvidual para no aborar todo el bloque
+            try{
+                const resultado= instruccion.ejecutar(entornoLocal);
+                if (resultado && resultado.senal !== ExecSignal.NORMAL){
+                    return resultado;
+                }
+            } 
+            catch (e){
+                entorno.registrarError(e);
             }
         }
-    return {senal: ExecSignal.NORMAL, valor: null };
+        return {senal: ExecSignal.NORMAL, valor: null };
     }
 }
-
 module.exports=BloqueInstrucciones;
