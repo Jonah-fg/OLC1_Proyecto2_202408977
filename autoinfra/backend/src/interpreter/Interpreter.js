@@ -1,11 +1,12 @@
 
 //Recorre el AST y ejecuta el programa completo
 const Entorno= require('../entorno/Entorno');
+const { generarTablaSimbolos} = require('../reportes/GeneradorSimbolos');
 
 class Interpreter{
     constructor(programa){
         this.programa = programa;
-        this.entorno = null;
+        this.entorno =null;
     }
 
     ejecutar(){
@@ -55,6 +56,36 @@ class Interpreter{
             }
         }
         return {servidores, servicios, databases };
+    }
+
+    ejecutarConReporte(tokens=[], erroresLexicos =[], erroresSintacticos= []){
+        const resultado=this.ejecutar();
+
+        const ResultadoEjecucion = require('../reportes/ResultadoEjecucion');
+        const reporte= new ResultadoEjecucion();
+
+        reporte.tokens=tokens.map((t)=> ({
+            tipo: t.tipo,
+            lexema: t.lexema,
+            linea: t.linea,
+            columna: t.columna,
+        }));
+        reporte.agregarErrores(erroresLexicos);
+        reporte.agregarErrores(erroresSintacticos);
+        reporte.agregarErrores(resultado.errores);
+
+        reporte.consola= resultado.consola;
+        reporte.bitacora=resultado.bitacora;
+        reporte.infraestructura = resultado.infraestructura;
+
+        reporte.simbolos=generarTablaSimbolos(this.entorno);
+  
+        const {serializarAST, generarDot }=require('../reportes/GeneradorAST');
+        reporte.ast = serializarAST(this.programa);
+        reporte.astDot= generarDot(this.programa);
+
+        reporte.calcularExito();
+        return reporte;
     }
 }
 module.exports= Interpreter;

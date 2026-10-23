@@ -4,15 +4,18 @@ const {ErrorEjecucion } =require('../Utils/Errores');
 const ExecSignal = require('../ast/ExecSignal');
 
 class Entorno{
-    constructor(padre=null) {
+    constructor(padre=null, nombreAmbiente = 'global') {
         this.padre =padre;
+        this.nombreAmbiente=nombreAmbiente;
         this.variables = new Map(); //nombre → {valor, tipo }
         this.funciones= new Map(); //nombre → DeclaracionFuncion
         this.tareas =new Map(); //nombre → DeclaracionTarea
         this.recursos=new Map(); //nombre → Recurso (Server/Service/Database)
+        this.hijos = [];   
 
         //Estado compartido del intérprete (solo en el entorno global)
         if (padre === null){
+            this.hijos=[]
             this.contadorInstrucciones = 0;
             this.profundidadLlamadas = 0;
             this.limiteInstrucciones = 100000;
@@ -21,12 +24,15 @@ class Entorno{
             this.errores = []; 
             this.bitacora = [];  
         }
+        else{
+            padre.hijos.push(this);
+        }
     }
 
-    // Ámbitos
+    //Ámbitos
     //Crea un entorno hijo (para funciones, bloques, ciclos)
-    crearHijo() {
-        return new Entorno(this);
+    crearHijo(nombreAmbiente = 'bloque') {
+        return new Entorno(this, nombreAmbiente);
     }
 
     // Devuelve el entorno global (raíz)
@@ -38,13 +44,26 @@ class Entorno{
         return actual;
     }
 
+    //devuelve todos los entornos del árbol para los reportes
+    obtenerTodosLosEntornos(){
+        const lista=[];
+        const visitar=(entorno) =>{
+            lista.push(entorno);
+            for (const hijo of entorno.hijos){
+                visitar(hijo);
+            }
+        };
+        visitar(this.global());
+        return lista;
+    }
+
     //Variables
     //declara una variable en el ámbito actual
-    declarar(nombre, valor, tipo, linea, columna){
+    declarar(nombre, valor, tipo, linea, columna, esParametro= false){
         if (this.variables.has(nombre)){
             throw new ErrorEjecucion(`Variable '${nombre}' ya declarada en este ámbito`, linea, columna);
         }
-        this.variables.set(nombre, {valor, tipo});
+        this.variables.set(nombre, {valor, tipo, esParametro});
     }
 
     // Busca una variable en el ámbito actual y luego en los padres
@@ -161,9 +180,9 @@ class Entorno{
         }
 
         //crecion entorno hijo con los parámetros
-        const entornoFuncion= this.crearHijo();
+        const entornoFuncion= this.crearHijo(nombre);
         for (let i = 0; i <funcion.params.length; i++) {
-            entornoFuncion.declarar(funcion.params[i].nombre, args[i], funcion.params[i].tipo, linea, columna);
+            entornoFuncion.declarar(funcion.params[i].nombre, args[i], funcion.params[i].tipo, linea, columna, true);
         }
 
         this.entrarLlamada(linea, columna);
