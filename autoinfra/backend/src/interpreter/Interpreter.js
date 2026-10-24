@@ -70,9 +70,9 @@ class Interpreter{
             linea: t.linea,
             columna: t.columna,
         }));
-        reporte.agregarErrores(erroresLexicos);
-        reporte.agregarErrores(erroresSintacticos);
-        reporte.agregarErrores(resultado.errores);
+        //Errores consolidados
+        const {consolidarErrores}=require('../reportes/GeneradorErrores');
+        reporte.errores= consolidarErrores(erroresLexicos, erroresSintacticos, resultado.errores);
 
         reporte.consola= resultado.consola;
         reporte.bitacora=resultado.bitacora;

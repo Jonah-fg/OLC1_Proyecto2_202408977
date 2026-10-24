@@ -18,6 +18,7 @@ class Parser{
         let columnaMain = 1;
 
         while(!this.finAlcanzado()){
+            const posicionAntes =this.posicion;
             try{
                 //main{...}
                 if(this.verificar(TokenType.MAIN)) {
@@ -60,6 +61,10 @@ class Parser{
             catch (e){
                 this.reportarError(e.descripcion || e.message, e.linea || 1, e.columna || 1);
                 this.sincronizar();
+                // ⚠️ NUEVO: garantizar progreso
+                if (this.posicion===posicionAntes && !this.finAlcanzado()){
+                    this.avanzar();
+                }
             }
         }
         if (bloqueMain=== null) {
